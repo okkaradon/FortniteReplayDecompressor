@@ -10,6 +10,9 @@ public abstract class BaseProjectile : INetFieldExportGroup
     [NetFieldExport("RemoteRole", RepLayoutCmdType.Ignore)]
     public int RemoteRole { get; set; }
 
+    public virtual string Type { get; set; } = "BaseProjectile";
+
+
     [NetFieldExport("Role", RepLayoutCmdType.Ignore)]
     public int Role { get; set; }
 

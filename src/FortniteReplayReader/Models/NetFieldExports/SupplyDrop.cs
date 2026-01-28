@@ -43,7 +43,8 @@ public class SupplyDrop : INetFieldExportGroup
     public float FallSpeed { get; set; }
 
     [NetFieldExport("LandingLocation", RepLayoutCmdType.PropertyVector)]
-    public FVector LandingLocation { get; set; }
+    public FVector? LandingLocation { get; set; }
+
 
     [NetFieldExport("FallHeight", RepLayoutCmdType.PropertyFloat)]
     public float FallHeight { get; set; }

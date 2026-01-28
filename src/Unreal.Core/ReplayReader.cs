@@ -757,6 +757,9 @@ public abstract class ReplayReader<T> where T : Replay, new()
                         NetFieldExports = new NetFieldExport[numExports]
                     };
                     _netGuidCache.AddToExportGroupMap(pathName, group);
+                    
+                    // DEBUG: Dump all paths
+                    System.IO.File.AppendAllText("exports_dump.txt", pathName + System.Environment.NewLine);
                 }
                 else if (numExports > group.NetFieldExportsLength)
                 {

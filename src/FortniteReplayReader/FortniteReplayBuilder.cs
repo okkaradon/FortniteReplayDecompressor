@@ -36,20 +36,51 @@ public class FortniteReplayBuilder
     private readonly Dictionary<uint, WeaponData> _weapons = new();
     private readonly Dictionary<uint, WeaponData> _unknownWeapons = new();
 
+    // Active projectiles being tracked (keyed by channelIndex)
+    private readonly Dictionary<uint, ProjectileData> _activeProjectiles = new();
+    // Completed projectiles (channel was closed)
+    private readonly List<ProjectileData> _completedProjectiles = new();
+    private readonly List<FortPickup> _pickups = new();
+
+
+
+
     private float? ReplicatedWorldTimeSeconds = 0;
     private double? ReplicatedWorldTimeSecondsDouble = 0;
 
     public void AddActorChannel(uint channelIndex, uint guid)
     {
+        // If this channel had an active projectile, finalize it before reuse
+        if (_activeProjectiles.TryGetValue(channelIndex, out var existingProjectile))
+        {
+            if (existingProjectile.Trajectory.Count > 0)
+            {
+                _completedProjectiles.Add(existingProjectile);
+            }
+            _activeProjectiles.Remove(channelIndex);
+        }
+        
         _actorToChannel[guid] = channelIndex;
         _channelToActor[channelIndex] = guid;
     }
+
 
     public void RemoveChannel(uint channelIndex)
     {
         _weapons.Remove(channelIndex);
         _unknownWeapons.Remove(channelIndex);
+        
+        // When a projectile channel closes, move it to completed list
+        if (_activeProjectiles.TryGetValue(channelIndex, out var projectile))
+        {
+            if (projectile.Trajectory.Count > 0)
+            {
+                _completedProjectiles.Add(projectile);
+            }
+            _activeProjectiles.Remove(channelIndex);
+        }
     }
+
 
     /// <summary>
     /// Once a replay is fully parsed, add the data build over time to the replay.
@@ -64,6 +95,11 @@ public class FortniteReplayBuilder
         replay.KillFeed = KillFeed;
         replay.TeamData = _teams.Values;
         replay.PlayerData = _players.Values;
+        // Combine completed projectiles and any still-active ones
+        replay.Projectiles = _completedProjectiles.Concat(_activeProjectiles.Values).ToList();
+
+
+        replay.Pickups = _pickups;
         return replay;
     }
 
@@ -222,7 +258,7 @@ public class FortniteReplayBuilder
             playerData.RebootCounter = state.RebootCounter;
         }
 
-        if (state.RebootCounter > 0 || state.bDBNO != null || state.DeathCause != null || state.DeathLocation != null)
+        if (state.RebootCounter > 0 || state.bDBNO is not null || state.DeathCause is not null || state.DeathLocation is not null)
         {
             UpdateKillFeed(channelIndex, playerData, state);
         }
@@ -537,7 +573,7 @@ public class FortniteReplayBuilder
             drop.HasSpawnedPickups = true;
         }
 
-        if (supplyDrop.LandingLocation != null)
+        if (supplyDrop.LandingLocation is not null)
         {
             drop.LandingLocation = supplyDrop.LandingLocation;
         }
@@ -554,10 +590,28 @@ public class FortniteReplayBuilder
         }
     }
 
-    //public void UpdateExplosion(BroadcastExplosion explosion)
-    //{
-    //    // ¯\_(ツ)_/¯
-    //}
+    public void UpdateProjectile(uint channelIndex, BaseProjectile projectile)
+    {
+        if (projectile != null)
+        {
+            if (!_activeProjectiles.TryGetValue(channelIndex, out var data))
+            {
+                data = new ProjectileData { ChannelIndex = channelIndex };
+                _activeProjectiles[channelIndex] = data;
+            }
+            data.Update(projectile, ReplicatedWorldTimeSeconds);
+        }
+    }
+
+
+
+    public void CreatePickupEvent(uint channelIndex, FortPickup pickup)
+    {
+        if (pickup != null)
+        {
+            _pickups.Add(pickup);
+        }
+    }
 
     public void UpdatePoiManager(FortPoiManager poiManager)
     {

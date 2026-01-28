@@ -85,9 +85,10 @@ public class ReplayReader : Unreal.Core.ReplayReader<FortniteReplay>
             case ActiveGameplayModifier modifier:
                 Builder.UpdateGameplayModifiers(modifier);
                 break;
-            //case FortPickup pickup:
-            //Builder.CreatePickupEvent(channelIndex, pickup);
-            //break;
+
+            case FortPickup pickup:
+                Builder.CreatePickupEvent(channelIndex, pickup);
+                break;
             //case FortInventory inventory:
             //    Builder.UpdateInventory(channelIndex, inventory);
             //    break;
@@ -113,9 +114,10 @@ public class ReplayReader : Unreal.Core.ReplayReader<FortniteReplay>
             case PlayerPawn pawn:
                 Builder.UpdatePlayerPawn(channelIndex, pawn);
                 break;
-            //case FortPickup pickup:
-            //Builder.CreatePickupEvent(channelIndex, pickup);
-            //break;
+
+            case FortPickup pickup:
+                Builder.CreatePickupEvent(channelIndex, pickup);
+                break;
             //case FortInventory inventory:
             //    Builder.UpdateInventory(channelIndex, inventory);
             //    break;
@@ -140,6 +142,9 @@ public class ReplayReader : Unreal.Core.ReplayReader<FortniteReplay>
             case BaseWeapon weapon:
                 Builder.UpdateWeapon(channelIndex, weapon);
                 break;
+            case BaseProjectile projectile:
+               Builder.UpdateProjectile(channelIndex, projectile);
+               break;
         }
     }
 

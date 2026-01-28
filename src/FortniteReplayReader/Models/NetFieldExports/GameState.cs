@@ -9,10 +9,10 @@ namespace FortniteReplayReader.Models.NetFieldExports;
 public class GameStateCache
 {
     [NetFieldExportRPC("ActiveGameplayModifiers", "/Script/FortniteGame.ActiveGameplayModifier", enablePropertyChecksum: false)]
-    public ActiveGameplayModifier[] ActiveGameplayModifiers { get; set; }
+    public ActiveGameplayModifier[]? ActiveGameplayModifiers { get; set; }
 
     [NetFieldExportRPC("GameMemberInfoArray", "/Script/FortniteGame.GameMemberInfo", enablePropertyChecksum: false)]
-    public GameMemberInfo[] GameMemberInfoArray { get; set; }
+    public GameMemberInfo[]? GameMemberInfoArray { get; set; }
 
     [NetFieldExportRPC("CurrentPlaylistInfo", "CurrentPlaylistInfo", customStruct: true)]
     public PlaylistInfo CurrentPlaylistInfo { get; set; }
@@ -136,7 +136,7 @@ public class GameState : INetFieldExportGroup
     public int? GameFlagData { get; set; }
 
     [NetFieldExport("AdditionalPlaylistLevelsStreamed", RepLayoutCmdType.DynamicArray)]
-    public FName[] AdditionalPlaylistLevelsStreamed { get; set; }
+    public FName[]? AdditionalPlaylistLevelsStreamed { get; set; }
 
     [NetFieldExport("WorldDaysElapsed", RepLayoutCmdType.PropertyInt)]
     public int? WorldDaysElapsed { get; set; }
@@ -154,7 +154,7 @@ public class GameState : INetFieldExportGroup
     public int? SpawnPointsAllocated { get; set; }
 
     [NetFieldExport("PlayerSharedMaxTrapAttributes", RepLayoutCmdType.DynamicArray)]
-    public float[] PlayerSharedMaxTrapAttributes { get; set; }
+    public float[]? PlayerSharedMaxTrapAttributes { get; set; }
 
     [NetFieldExport("TotalPlayerStructures", RepLayoutCmdType.PropertyInt)]
     public int? TotalPlayerStructures { get; set; }
@@ -220,16 +220,16 @@ public class GameState : INetFieldExportGroup
     public float? EndGameKickPlayerTime { get; set; }
 
     [NetFieldExport("ServerToClientPreloadList", RepLayoutCmdType.Ignore)]
-    public ItemDefinition[] ServerToClientPreloadList { get; set; }
+    public ItemDefinition[]? ServerToClientPreloadList { get; set; }
 
     [NetFieldExport("ClientVehicleClassesToLoad", RepLayoutCmdType.Ignore)]
-    public ItemDefinition[] ClientVehicleClassesToLoad { get; set; }
+    public ItemDefinition[]? ClientVehicleClassesToLoad { get; set; }
 
     [NetFieldExport("bAllowUserPickedCosmeticBattleBus", RepLayoutCmdType.PropertyBool)]
     public bool? bAllowUserPickedCosmeticBattleBus { get; set; }
 
     [NetFieldExport("TeamFlightPaths", RepLayoutCmdType.DynamicArray)]
-    public Aircraft[] TeamFlightPaths { get; set; }
+    public Aircraft[]? TeamFlightPaths { get; set; }
 
     [NetFieldExport("StormCapState", RepLayoutCmdType.Enum)]
     public int? StormCapState { get; set; }
@@ -262,7 +262,7 @@ public class GameState : INetFieldExportGroup
     public int? GamePhase { get; set; }
 
     [NetFieldExport("Aircrafts", RepLayoutCmdType.DynamicArray)]
-    public ItemDefinition[] Aircrafts { get; set; }
+    public ItemDefinition[]? Aircrafts { get; set; }
 
     [NetFieldExport("bAircraftIsLocked", RepLayoutCmdType.PropertyBool)]
     public bool? bAircraftIsLocked { get; set; }
@@ -274,7 +274,7 @@ public class GameState : INetFieldExportGroup
     public ActorGuid WinningPlayerState { get; set; }
 
     [NetFieldExport("WinningPlayerList", RepLayoutCmdType.DynamicArray)]
-    public int[] WinningPlayerList { get; set; }
+    public int[]? WinningPlayerList { get; set; }
 
     [NetFieldExport("WinningTeam", RepLayoutCmdType.PropertyUInt32)]
     public uint? WinningTeam { get; set; }
@@ -301,7 +301,7 @@ public class GameState : INetFieldExportGroup
     public bool? bIsLargeTeamGame { get; set; }
 
     [NetFieldExport("ActiveTeamNums", RepLayoutCmdType.DynamicArray)]
-    public NetworkGUID[] ActiveTeamNums { get; set; }
+    public NetworkGUID[]? ActiveTeamNums { get; set; }
 
     [NetFieldExport("AirCraftBehavior", RepLayoutCmdType.Enum)]
     public int? AirCraftBehavior { get; set; }
@@ -364,16 +364,16 @@ public class GameState : INetFieldExportGroup
     public uint? VolumeManager { get; set; }
 
     [NetFieldExport("TrackedCosmetics", RepLayoutCmdType.DynamicArray)]
-    public ItemDefinition[] TrackedCosmetics { get; set; }
+    public ItemDefinition[]? TrackedCosmetics { get; set; }
 
     [NetFieldExport("VariantUsageByCosmetic", RepLayoutCmdType.DynamicArray)]
-    public ItemDefinition[] VariantUsageByCosmetic { get; set; }
+    public ItemDefinition[]? VariantUsageByCosmetic { get; set; }
 
     [NetFieldExport("PrioritizedCosmeticIndices", RepLayoutCmdType.DynamicArray)]
-    public ItemDefinition[] PrioritizedCosmeticIndices { get; set; }
+    public ItemDefinition[]? PrioritizedCosmeticIndices { get; set; }
 
     [NetFieldExport("Mappings", RepLayoutCmdType.DynamicArray)]
-    public ItemDefinition[] Mappings { get; set; }
+    public ItemDefinition[]? Mappings { get; set; }
 
     [NetFieldExport("PlayersLoaded", RepLayoutCmdType.PropertyFloat)]
     public float PlayersLoaded { get; set; }

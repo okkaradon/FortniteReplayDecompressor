@@ -1,4 +1,6 @@
 ﻿using FortniteReplayReader.Models.Events;
+using FortniteReplayReader.Models.NetFieldExports;
+using FortniteReplayReader.Models.NetFieldExports.Weapons;
 using System.Collections.Generic;
 using Unreal.Core.Models;
 
@@ -10,6 +12,11 @@ public class FortniteReplay : Replay
     /// Eliminations found in the event chunks. See <see cref="KillFeed"/> for a much more detailed list of eliminations.
     /// </summary>
     public IList<PlayerElimination> Eliminations { get; internal set; } = new List<PlayerElimination>();
+
+    public IList<ProjectileData> Projectiles { get; internal set; } = new List<ProjectileData>();
+    public IList<FortPickup> Pickups { get; internal set; } = new List<FortPickup>();
+
+
 
     /// <summary>
     /// Personal stats found in the event chunk.

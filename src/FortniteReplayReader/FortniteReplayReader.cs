@@ -7,7 +7,9 @@ using FortniteReplayReader.Models.NetFieldExports;
 using FortniteReplayReader.Models.NetFieldExports.Weapons;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using Unreal.Core;
@@ -42,6 +44,68 @@ public class ReplayReader : Unreal.Core.ReplayReader<FortniteReplay>
 
         return Builder.Build(Replay);
     }
+
+    protected override void Cleanup()
+    {
+        if (Replay != null)
+        {
+            // 1. Save NetFieldExportPaths
+            var exportPaths = _netGuidCache.NetFieldExportGroupMap.Keys.ToList();
+            Replay.NetFieldExportPaths = exportPaths;
+
+            // 2. Identify Game Mode
+            // Basic detection from Header
+            var subGame = Replay.Header?.GameSpecificData?.FirstOrDefault(x => x.StartsWith("SubGame="));
+            if (!string.IsNullOrEmpty(subGame))
+            {
+                Replay.GameMode = subGame.Replace("SubGame=", "");
+            }
+
+            // Refine Game Mode relative to specific modes (Ballistic)
+            if (exportPaths.Any(p => p.Contains("/FeralCorgiGameplay/", StringComparison.OrdinalIgnoreCase)))
+            {
+                Replay.GameMode = "Ballistic";
+            }
+
+
+            // 3. Extract Map ID (UUID)
+            // Common system UUIDs to exclude
+            var commonUuids = new HashSet<string>
+            {
+                "4e1eb8de-46d3-f25c-ec9f-a2a046d2dab9", // System asset?
+                "b8851675-44b3-0215-b8e5-f685f824ef25"  // System asset?
+            };
+
+            var uuidPattern = new Regex(@"/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/", RegexOptions.IgnoreCase);
+            
+            var mapIdCandidates = exportPaths
+                .Select(path => uuidPattern.Match(path))
+                .Where(m => m.Success)
+                .Select(m => m.Groups[1].Value.ToLower())
+                .Where(uuid => !commonUuids.Contains(uuid))
+                .GroupBy(uuid => uuid)
+                .OrderByDescending(g => g.Count())
+                .ToList();
+
+            // Use the most frequent UUID as the Map ID
+            if (mapIdCandidates.Any())
+            {
+                Replay.MapId = mapIdCandidates.First().Key;
+            }
+        }
+
+        base.Cleanup();
+    }
+
+    /// <summary>
+    /// Gets all NetFieldExportGroup path names after parsing.
+    /// Useful for analyzing map/island UUIDs.
+    /// </summary>
+    public IEnumerable<string> GetNetFieldExportPaths()
+    {
+        return Replay?.NetFieldExportPaths ?? new List<string>();
+    }
+
 
     private string _branch;
     public int Major { get; set; }

@@ -93,7 +93,7 @@ public class GameState : INetFieldExportGroup
     [NetFieldExport("SafeZoneIndicator", RepLayoutCmdType.Ignore)]
     public uint? SafeZoneIndicator { get; set; }
 
-    [NetFieldExport("MapInfo", RepLayoutCmdType.Ignore)]
+    [NetFieldExport("MapInfo", RepLayoutCmdType.Property)]
     public ItemDefinition MapInfo { get; set; }
 
     [NetFieldExport("GoldenPoiLocationTags", RepLayoutCmdType.Property)]

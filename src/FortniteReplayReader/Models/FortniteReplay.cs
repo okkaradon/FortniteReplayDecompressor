@@ -52,4 +52,20 @@ public class FortniteReplay : Replay
     /// Map information
     /// </summary>
     public MapData MapData { get; internal set; } = new MapData();
+
+    /// <summary>
+    /// All NetFieldExport path names from the replay.
+    /// Useful for analyzing map/island UUIDs.
+    /// </summary>
+    public IList<string> NetFieldExportPaths { get; internal set; } = new List<string>();
+
+    /// <summary>
+    /// The extracted Map ID (UUID) for Creative/UEFN maps.
+    /// </summary>
+    public string? MapId { get; internal set; }
+
+    /// <summary>
+    /// The extracted Game Mode (e.g., "Athena", "Ballistic").
+    /// </summary>
+    public string? GameMode { get; internal set; }
 }

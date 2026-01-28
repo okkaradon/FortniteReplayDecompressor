@@ -3,7 +3,11 @@ obj/
 .vs/
 *.user
 *.suo
+cmds/
 exports_dump.txt
+all_feral_actors.txt
+all_feral_paths.txt
+feralcorgi_paths.txt
 scripts/*.txt
 scripts/*.json
 *.replay

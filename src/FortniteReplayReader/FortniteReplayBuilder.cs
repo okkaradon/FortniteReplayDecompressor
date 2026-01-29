@@ -1,6 +1,9 @@
 ﻿using FortniteReplayReader.Models;
 using FortniteReplayReader.Models.NetFieldExports;
 using FortniteReplayReader.Models.NetFieldExports.Weapons;
+using System.Text.RegularExpressions;
+using Unreal.Core.Models;
+using Unreal.Core.Models.Enums;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -27,6 +30,7 @@ public class FortniteReplayBuilder
 
     private readonly HashSet<uint> _onlySpectatingPlayers = new();
     private readonly Dictionary<uint, PlayerData> _players = new();
+    private readonly List<PlayerData> _archivedPlayers = new(); // Archived players for channel reuse
     private readonly Dictionary<int?, TeamData> _teams = new();
     private readonly Dictionary<uint, Llama> _llamas = new();
     private readonly Dictionary<int, RebootVan> _rebootVans = new();
@@ -59,7 +63,24 @@ public class FortniteReplayBuilder
             }
             _activeProjectiles.Remove(channelIndex);
         }
+
+        // Defensive: Archive player if channel is reused without explicit close
+        if (_players.TryGetValue(channelIndex, out var existingPlayer))
+        {
+            _archivedPlayers.Add(existingPlayer);
+            _players.Remove(channelIndex);
+        }
+
+        // Defensive: Cleanup old actor mapping if exists
+        if (_channelToActor.TryGetValue(channelIndex, out var oldActorId))
+        {
+             _actorToChannel.Remove(oldActorId);
+             _channelToActor.Remove(channelIndex);
+        }
         
+        // Defensive: Cleanup old pawn-to-state channel mapping
+        _pawnChannelToStateChannel.Remove(channelIndex);
+
         _actorToChannel[guid] = channelIndex;
         _channelToActor[channelIndex] = guid;
     }
@@ -78,6 +99,20 @@ public class FortniteReplayBuilder
                 _completedProjectiles.Add(projectile);
             }
             _activeProjectiles.Remove(channelIndex);
+        }
+
+        // Archive player data if this channel was a player
+        if (_players.TryGetValue(channelIndex, out var playerData))
+        {
+            _archivedPlayers.Add(playerData);
+            _players.Remove(channelIndex);
+
+            // Cleanup stale pawn mappings pointing to this state channel
+            var stalePawns = _pawnChannelToStateChannel.Where(kvp => kvp.Value == channelIndex).Select(kvp => kvp.Key).ToList();
+            foreach (var pawnChannel in stalePawns)
+            {
+                _pawnChannelToStateChannel.Remove(pawnChannel);
+            }
         }
 
         // Cleanup Actor mappings to prevent ID mixing on channel reuse
@@ -103,7 +138,8 @@ public class FortniteReplayBuilder
         replay.MapData = MapData;
         replay.KillFeed = KillFeed;
         replay.TeamData = _teams.Values;
-        replay.PlayerData = _players.Values;
+        // Combine active and archived players
+        replay.PlayerData = _archivedPlayers.Concat(_players.Values).ToList();
         // Combine completed projectiles and any still-active ones
         replay.Projectiles = _completedProjectiles.Concat(_activeProjectiles.Values).ToList();
 
@@ -250,9 +286,50 @@ public class FortniteReplayBuilder
 
         var isNewPlayer = !_players.TryGetValue(channelIndex, out var playerData);
 
+        // Check for identity change (Channel reuse without Close)
+        if (!isNewPlayer)
+        {
+            var newId = state.UniqueId ?? state.UniqueID;
+            var newIntId = state.PlayerId is null ? state.PlayerID : (int?) state.PlayerId;
+
+            // Check for identity change (Channel reuse without Close)
+            bool isIdentityChanged = false;
+
+            // 1. UniqueId (String) Change
+            if (newId != null && playerData.EpicId != null && newId != playerData.EpicId)
+            {
+                isIdentityChanged = true;
+            }
+            // 2. PlayerID (Int) Change (for anonymous/bots where UniqueId might be missing)
+            else if (newIntId != null && playerData.Id != null && newIntId != playerData.Id)
+            {
+                isIdentityChanged = true;
+            }
+            // 3. Bot Status Change (Human <-> Bot swap on same channel)
+            else if (state.bIsABot != null && state.bIsABot != playerData.IsBot)
+            {
+                isIdentityChanged = true;
+            }
+
+            if (isIdentityChanged)
+            {
+                _archivedPlayers.Add(playerData);
+                playerData = new PlayerData(state);
+                _players[channelIndex] = playerData;
+                isNewPlayer = true;
+
+                // Cleanup stale pawn mappings pointing to this state channel
+                var stalePawns = _pawnChannelToStateChannel.Where(kvp => kvp.Value == channelIndex).Select(kvp => kvp.Key).ToList();
+                foreach (var pawnChannel in stalePawns)
+                {
+                    _pawnChannelToStateChannel.Remove(pawnChannel);
+                }
+            }
+        }
+
         if (isNewPlayer)
         {
-            playerData = new PlayerData(state);
+            if (playerData == null) playerData = new PlayerData(state);
 
             if (_channelToActor.TryGetValue(channelIndex, out var actorId) && actorId == GameData.RecorderId)
             {
@@ -430,6 +507,7 @@ public class FortniteReplayBuilder
                 bIsDBNO = pawn.bIsDBNO,
                 bIsInWaterVolume = pawn.bIsInWaterVolume,
             };
+
             playerState.Locations.Add(newLocation);
         }
 

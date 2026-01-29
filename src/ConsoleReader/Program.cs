@@ -18,21 +18,17 @@ var serviceCollection = new ServiceCollection()
 var provider = serviceCollection.BuildServiceProvider();
 var logger = provider.GetService<ILogger<Program>>();
 
-// Define the folder containing replay files
+bool useStdout = args.Contains("--stdout");
 var replayFiles = new List<string>();
 
-if (args.Length > 0)
+foreach (var arg in args)
 {
-    if (File.Exists(args[0]))
-    {
-        replayFiles.Add(args[0]);
-    }
-    else if (Directory.Exists(args[0]))
-    {
-        replayFiles.AddRange(Directory.EnumerateFiles(args[0], "*.replay"));
-    }
+    if (arg == "--stdout") continue;
+    if (File.Exists(arg)) replayFiles.Add(arg);
+    else if (Directory.Exists(arg)) replayFiles.AddRange(Directory.EnumerateFiles(arg, "*.replay"));
 }
-else
+
+if (!useStdout && replayFiles.Count == 0)
 {
     var replayFilesFolder = Directory.GetCurrentDirectory();
     replayFiles.AddRange(Directory.EnumerateFiles(replayFilesFolder, "*.replay"));
@@ -41,15 +37,10 @@ else
 var sw = new Stopwatch();
 long total = 0;
 
-// UUID pattern (8-4-4-4-12 format) at start of path
-var uuidPattern = new Regex(@"^/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/", RegexOptions.IgnoreCase);
-
-// Store results per file
-var fileResults = new Dictionary<string, FortniteReplay>();
-
-Console.WriteLine($"--- Processing {replayFiles.Count} replay files ---\n");
-
 var reader = new ReplayReader(logger, ParseMode.Full);
+
+// Suppress console output if using stdout for JSON
+if (!useStdout) Console.WriteLine($"--- Processing {replayFiles.Count} replay files ---\n");
 
 foreach (var replayFile in replayFiles)
 {
@@ -61,26 +52,38 @@ foreach (var replayFile in replayFiles)
         using var stream = File.Open(replayFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
         var replay = reader.ReadReplay(stream);
         
-        fileResults[fileName] = replay;
-        Console.Write("."); // Progress indicator
+        if (useStdout)
+        {
+            var options = new System.Text.Json.JsonSerializerOptions 
+            { 
+                WriteIndented = false, // Compact JSON for speed
+                DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+            };
+            var json = System.Text.Json.JsonSerializer.Serialize(replay, options);
+            Console.WriteLine(json);
+        }
+        else
+        {
+            var options = new System.Text.Json.JsonSerializerOptions { WriteIndented = true };
+            var json = System.Text.Json.JsonSerializer.Serialize(replay, options);
+            var jsonPath = Path.ChangeExtension(replayFile, ".json");
+            File.WriteAllText(jsonPath, json);
+            Console.WriteLine($"Saved to: {jsonPath}");
+        }
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"{fileName}: Error - {ex.Message}");
+        if (!useStdout) Console.WriteLine($"{fileName}: Error - {ex.Message}");
+        else Console.Error.WriteLine($"{fileName}: Error - {ex.Message}");
     }
     sw.Stop();
     total += sw.ElapsedMilliseconds;
 }
 
-Console.WriteLine($"\n--- Map UUID Report ---\n");
-Console.WriteLine("| File Name | Game Mode | Map ID |");
-Console.WriteLine("|---|---|---|");
-
-foreach (var kvp in fileResults)
+if (!useStdout)
 {
-    Console.WriteLine($"| {kvp.Key} | {kvp.Value.GameMode ?? "Unknown"} | {kvp.Value.MapId ?? "Not Found"} |");
+    Console.WriteLine($"\n--- Processing Complete ---");
+    Console.WriteLine($"Total processed: {replayFiles.Count}");
+    Console.WriteLine($"Analysis complete in {total / 1000.0:F2} seconds");
 }
-Console.WriteLine("\n-----------------------\n");
-Console.WriteLine($"Total processed: {fileResults.Count}");
-Console.WriteLine($"Analysis complete in {total / 1000.0:F2} seconds");
 

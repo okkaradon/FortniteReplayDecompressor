@@ -1,4 +1,5 @@
 ﻿using FortniteReplayReader;
+using FortniteReplayReader.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
@@ -43,8 +44,8 @@ long total = 0;
 // UUID pattern (8-4-4-4-12 format) at start of path
 var uuidPattern = new Regex(@"^/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/", RegexOptions.IgnoreCase);
 
-// Collect UUIDs per file
-var uuidsByFile = new Dictionary<string, HashSet<string>>();
+// Store results per file
+var fileResults = new Dictionary<string, FortniteReplay>();
 
 Console.WriteLine($"--- Processing {replayFiles.Count} replay files ---\n");
 
@@ -54,61 +55,32 @@ foreach (var replayFile in replayFiles)
 {
     sw.Restart();
     var fileName = Path.GetFileName(replayFile);
-    var uuids = new HashSet<string>();
     
     try
     {
         using var stream = File.Open(replayFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
         var replay = reader.ReadReplay(stream);
         
-        // Analysis complete, output results
-        Console.WriteLine($"\n--- Replay Analysis Result ---");
-        Console.WriteLine($"Game Mode: {replay.GameMode ?? "Unknown"}");
-        Console.WriteLine($"Map ID:    {replay.MapId ?? "Not Found"}");
-        Console.WriteLine($"Export Paths Count: {replay.NetFieldExportPaths?.Count ?? 0}");
-        
-        // Output detailed JSON for verification
-        var jsonOptions = new System.Text.Json.JsonSerializerOptions { WriteIndented = true };
-        var json = System.Text.Json.JsonSerializer.Serialize(new { replay.GameMode, replay.MapId }, jsonOptions);
-        Console.WriteLine($"\nJSON Output:\n{json}");
-
+        fileResults[fileName] = replay;
+        Console.Write("."); // Progress indicator
     }
     catch (Exception ex)
     {
         Console.WriteLine($"{fileName}: Error - {ex.Message}");
     }
     sw.Stop();
-    // Only process one file for verification
-    break;
+    total += sw.ElapsedMilliseconds;
 }
 
-Console.WriteLine($"\n--- Analysis complete in {total / 1000} seconds ---\n");
+Console.WriteLine($"\n--- Map UUID Report ---\n");
+Console.WriteLine("| File Name | Game Mode | Map ID |");
+Console.WriteLine("|---|---|---|");
 
-// Aggregate UUIDs across files
-var allUuids = new Dictionary<string, List<string>>();
-foreach (var kvp in uuidsByFile)
+foreach (var kvp in fileResults)
 {
-    foreach (var uuid in kvp.Value)
-    {
-        if (!allUuids.ContainsKey(uuid))
-            allUuids[uuid] = new List<string>();
-        allUuids[uuid].Add(kvp.Key);
-    }
+    Console.WriteLine($"| {kvp.Key} | {kvp.Value.GameMode ?? "Unknown"} | {kvp.Value.MapId ?? "Not Found"} |");
 }
-
-Console.WriteLine($"=== UUID Distribution ===\n");
-Console.WriteLine($"Total unique UUIDs across all files: {allUuids.Count}\n");
-
-// Group by frequency
-var byFrequency = allUuids.GroupBy(kvp => kvp.Value.Count).OrderByDescending(g => g.Key);
-
-foreach (var group in byFrequency)
-{
-    Console.WriteLine($"--- Appears in {group.Key} file(s) ---");
-    foreach (var kvp in group.OrderBy(x => x.Key))
-    {
-        Console.WriteLine($"  {kvp.Key}");
-    }
-    Console.WriteLine();
-}
+Console.WriteLine("\n-----------------------\n");
+Console.WriteLine($"Total processed: {fileResults.Count}");
+Console.WriteLine($"Analysis complete in {total / 1000.0:F2} seconds");
 

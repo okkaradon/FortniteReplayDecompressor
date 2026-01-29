@@ -79,6 +79,15 @@ public class FortniteReplayBuilder
             }
             _activeProjectiles.Remove(channelIndex);
         }
+
+        // Cleanup Actor mappings to prevent ID mixing on channel reuse
+        if (_channelToActor.TryGetValue(channelIndex, out var actorId))
+        {
+            _actorToChannel.Remove(actorId);
+            _channelToActor.Remove(channelIndex);
+        }
+
+        _pawnChannelToStateChannel.Remove(channelIndex);
     }
 
 
